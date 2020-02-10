@@ -38,13 +38,12 @@ import functools
 import ast
 import time
 
-# from tensorflow.python.platform import tf_logging as logging
 """
 ###################################################################
-#                       Configuración                             #                                                                                                    
+#                       Configuration                             #                                                                                                    
 ###################################################################
 """
-# Configuración por defecto basada en Magenta
+# default configuraction. Based on Magenta
 default_configs = {'drum_kit':
     events_rnn_model.EventSequenceRnnConfig(
         magenta.music.protobuf.generator_pb2.GeneratorDetails(
@@ -64,95 +63,71 @@ default_configs = {'drum_kit':
             learning_rate=0.001))
 }
 
-# TensorFlow FLAGS
+# TensorFlow Flags.
+#Flags to configure evaluation and training. Spanish edition
 Flags = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/deepbeat/logdir/run1',
-                           'Path to the directory where checkpoints and '
-                           'summary events will be saved during training and '
-                           'evaluation. Separate subdirectories for training '
-                           'events and eval events will be created within '
-                           '`run_dir`. Multiple runs can be stored within the '
-                           'parent directory of `run_dir`. Point TensorBoard '
-                           'to the parent directory of `run_dir` to see all '
-                           'your runs.')
+tf.app.flags.DEFINE_string('run_dir', '/tmp/Deepbeat/logdir/run1',
+                           'Directorio  donde se encuentran los checkpoinst y'
+                           'los análisis de los eventos.Se crearán en directorios separados para '
+                           'el entrenamiento y la evaluación. '
+                           'Se pueden guardar diferentes entrenamientos/evaluaciones'
+                           'en el mismo directorio. Si se desea usar TensorBoard'
+                           'aputar al directorio run_dir.' )
 tf.app.flags.DEFINE_string('SE', '',
-                           'Directorio dónde se encuentran los archivos TFRecord'
-                           'dónde contienen los records para entrenamiento o'
-                           'evaluación.')
+                           'Directorio donde se encuentran los archivos TFRecord'
+                           'para  el entrenamiento o la evaluación.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
-                            'Específica el número de steps en el entrenamiento'
+                            'Específica el número de steps en el entrenamiento.'
                             'Dejar valor 0 para terminar de forma manual.')
 tf.app.flags.DEFINE_string('modo_trabajo', 'train',
                            'train: entrentamiento'
                            'eval: evaluación'
                            'generate: inferencia')
 tf.app.flags.DEFINE_integer('num_eval_batches', 64,
-                            'Específica el número de batches en la evaluación')
+                            'Específica el número de batches en la evaluación.')
 
-# @DGG
-# TODO@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NEW
+#Flags for inference. Spanish edition.
+tf.app.flags.DEFINE_string('output_dir', '/tmp/drums_rnn/generated',
+                           'Directorio donde los archivos MIDI se guardarán.')
+tf.app.flags.DEFINE_integer('num_outputs', 1,
+                            'Número de pistas de audio que se generarán (en formato MIDI)')
+tf.app.flags.DEFINE_integer('num_steps', 128,
+                            'El total de número de steps que se generan por pista(track). '
+                            'El número 128 implica que son 8 compases')
+tf.app.flags.DEFINE_string( 'primer_drums', '',
+                            'Es una representación en texto sobre el patron rítmico el cual el modelo'
+                            'se tiene que basar. Por ejemplo: "[(36,42),(),(),(),(42,),(),(),()]" ')
 
+tf.app.flags.DEFINE_float('qpm', None,
+                          'Este valor es los "quarters per minute", indica el tempo para reproducir la salida. '
+                          'Si el valor es None, el valor por defecto será 120.')
 
-tf.app.flags.DEFINE_string(
-    'output_dir', '/tmp/drums_rnn/generated',
-    'The directory where MIDI files will be saved to.')
-tf.app.flags.DEFINE_integer(
-    'num_outputs', 10,
-    'The number of drum tracks to generate. One MIDI file will be created for '
-    'each.')
-tf.app.flags.DEFINE_integer(
-    'num_steps', 128,
-    'The total number of steps the generated drum tracks should be, priming '
-    'drum track length + generated steps. Each step is a 16th of a bar.')
-tf.app.flags.DEFINE_string(
-    'primer_drums', '',
-    'A string representation of a Python list of tuples containing drum pitch '
-    'values. For example: '
-    '"[(36,42),(),(),(),(42,),(),(),()]". If specified, this drum track will '
-    'be used as the priming drum track. If a priming drum track is not '
-    'specified, drum tracks will be generated from scratch.')
+tf.app.flags.DEFINE_float('temperature', 1.0,
+                          'Representa la  aleatoriedad de las pistas de drums generadas. 1.0 utiliza el inalterado'
+                          'Valores mayores que 1 generar pistas más aleatorias y valores menores que 1 menos '
+                          'aleatorias.')
 
-# ANALIZAR
-tf.app.flags.DEFINE_float(
-    'qpm', None,
-    'The quarters per minute to play generated output at. If a primer MIDI is '
-    'given, the qpm from that will override this flag. If qpm is None, qpm '
-    'will default to 120.')
-
-tf.app.flags.DEFINE_float(
-    'temperature', 1.0,
-    'The randomness of the generated drum tracks. 1.0 uses the unaltered '
-    'softmax probabilities, greater than 1.0 makes tracks more random, less '
-    'than 1.0 makes tracks less random.')
-
-tf.app.flags.DEFINE_string(
-    'primer_midi', '',
-    'The path to a MIDI file containing a drum track that will be used as a '
-    'priming drum track. If a primer drum track is not specified, drum tracks '
-    'will be generated from scratch.')
+#@TODO ELIMINAR :
+tf.app.flags.DEFINE_string('primer_midi', '',
+                            'Directorio del archivo MIDI que sustituye al flag prime_midi.'
+                            'Si no se especifica, la pista sera creada desde el principio.')
 
 """
 ###################################################################
-#                       Clases                                   #                                                                                                    
+#                       Classes                                   #                                                                                                    
 ###################################################################
 """
 """
 #######################################################################################
-# Function: EvalLoggingTensorHook
-# Input: 
-# Output: 
-# Description: 
+# Class: EvalLoggingTensorHook
+# Description: Class declared for evaluation
 #                                                                            
 #######################################################################################
 """
 
 
 class EvalLoggingTensorHook(tf.estimator.LoggingTensorHook):
-    """A revised version of LoggingTensorHook to use during evaluation.
 
-  This version supports being reset and increments `_iter_count` before run
-  instead of after run.
-  """
 
     def begin(self):
         # Reset timer.
@@ -170,32 +145,31 @@ class EvalLoggingTensorHook(tf.estimator.LoggingTensorHook):
 
 """
 #######################################################################################
-# Function: DrumsRnnSequenceGenerator
-# Input: 
-# Output: 
+# Clase: DrumsRnnSequenceGenerator
+# Arguments: 
+#            model: Instance of DrumsRnnModel.
+#            details: A generator_pb2.GeneratorDetails for this generator.
+#            steps_per_quarter: What precision to use when quantizing the melody. How
+#                               many steps per quarter note.
+#            checkpoint: Where to search for the most recent model checkpoint. Mutually
+#                        exclusive with `bundle`.
+#            bundle: A GeneratorBundle object that includes both the model checkpoint
+#                    and metagraph. Mutually exclusive with `checkpoint`.
+# Return:
+#           generated_sequence: Secuencia generada
 # Description: 
-#                                                                            
+#              Shared Melody RNN generation code as a SequenceGenerator interface. Adaptation.                                                                
 #######################################################################################
 """
-
+#TODO @DGG : DrumsRnnSequence needs to use our model generation function
 
 class DrumsRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
-    """Shared Melody RNN generation code as a SequenceGenerator interface."""
+
 
     def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                  bundle=None):
-        """Creates a DrumsRnnSequenceGenerator.
 
-    Args:
-      model: Instance of DrumsRnnModel.
-      details: A generator_pb2.GeneratorDetails for this generator.
-      steps_per_quarter: What precision to use when quantizing the melody. How
-          many steps per quarter note.
-      checkpoint: Where to search for the most recent model checkpoint. Mutually
-          exclusive with `bundle`.
-      bundle: A GeneratorBundle object that includes both the model checkpoint
-          and metagraph. Mutually exclusive with `checkpoint`.
-    """
+        #TODO @DGG : NO USAR FUNCIONES DE LA CLASE PADRE.
         super(DrumsRnnSequenceGenerator, self).__init__(
             model, details, checkpoint, bundle)
         self.steps_per_quarter = steps_per_quarter
@@ -293,79 +267,69 @@ class DrumsRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
 """
 #######################################################################################
-# Function: DrumsRnnModel
-# Input: 
-# Output: 
-# Description: 
-#                                                                            
+# Class: DrumsRnnModel
+# Arguments:
+#              num_steps: The integer length in steps of the final drum track, after
+#                         generation. Includes the primer.
+#              primer_drums: The primer drum track, a DrumTrack object.
+#              temperature: A float specifying how much to divide the logits by
+#                           before computing the softmax. Greater than 1.0 makes drum tracks more
+#                           random, less than 1.0 makes drum tracks less random.
+#              beam_size: An integer, beam size to use when generating drum tracks via
+#                         beam search.
+#              branch_factor: An integer, beam search branch factor to use.
+#              steps_per_iteration: An integer, number of steps to take per beam search
+#                                   iteration.
+#        
+# Returns:
+#              The generated DrumTrack object (which begins with the provided primer drum
+#                  track).
+# Description:  Class declared for inference
+#                                                                         
 #######################################################################################
 """
 
 
 class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
-    """Class for RNN drum track generation models."""
+
 
     def generate_drum_track(self, num_steps, primer_drums, temperature=1.0,
                             beam_size=1, branch_factor=1, steps_per_iteration=1):
-        """Generate a drum track from a primer drum track.
 
-    Args:
-      num_steps: The integer length in steps of the final drum track, after
-          generation. Includes the primer.
-      primer_drums: The primer drum track, a DrumTrack object.
-      temperature: A float specifying how much to divide the logits by
-         before computing the softmax. Greater than 1.0 makes drum tracks more
-         random, less than 1.0 makes drum tracks less random.
-      beam_size: An integer, beam size to use when generating drum tracks via
-          beam search.
-      branch_factor: An integer, beam search branch factor to use.
-      steps_per_iteration: An integer, number of steps to take per beam search
-          iteration.
-
-    Returns:
-      The generated DrumTrack object (which begins with the provided primer drum
-          track).
-    """
         return self._generate_events(num_steps, primer_drums, temperature,
                                      beam_size, branch_factor, steps_per_iteration)
 
 
 """
 ###################################################################
-#                Funciones auxiliares                             #                                                                                                    
+#                Auxiliar  function                              #                                                                                                    
 ###################################################################
 #######################################################################################
 # Function: make_rnn_cell
-# Input: 
-# Output: 
-# Description: 
-#                                                                            
+#  Arguments:
+#           rnn_layer_sizes: A list of integer sizes (in units) for each layer of the
+#                            RNN.
+#           dropout_keep_prob: The float probability to keep the output of any given
+#                              sub-cell.
+#           attn_length: The size of the attention vector.
+#           base_cell: The base tf.contrib.rnn.RNNCell to use for sub-cells.
+#           residual_connections: Whether or not to use residual connections (via
+#                                 tf.contrib.rnn.ResidualWrapper).
+#
+#  Returns:
+#      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
+#
+# Description:  make a RNN Cell. Adaptation
+#                                                                                   
 #######################################################################################
 """
 
-
-# @DGG
 
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
                   base_cell=contrib_rnn.BasicLSTMCell,
                   residual_connections=False):
-    """Makes a RNN cell from the given hyperparameters.
-
-  Args:
-    rnn_layer_sizes: A list of integer sizes (in units) for each layer of the
-        RNN.
-    dropout_keep_prob: The float probability to keep the output of any given
-        sub-cell.
-    attn_length: The size of the attention vector.
-    base_cell: The base tf.contrib.rnn.RNNCell to use for sub-cells.
-    residual_connections: Whether or not to use residual connections (via
-        tf.contrib.rnn.ResidualWrapper).
-
-  Returns:
-      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
-  """
     cells = []
     for i in range(len(rnn_layer_sizes)):
         cell = base_cell(rnn_layer_sizes[i])
@@ -388,39 +352,34 @@ def make_rnn_cell(rnn_layer_sizes,
 """
 #######################################################################################
 # Function: get_TF_graph
-# Input: 
-# Output: 
-# Description: 
-#                                                                            
+# Arguments:
+#            mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
+#                the graph.
+#            config: An EventSequenceRnnConfig containing the encoder/decoder and HParams
+#                to use.
+#            sequence_example_file_paths: A list of paths to TFRecord files containing
+#                tf.train.SequenceExample protos. Only needed for training and
+#                evaluation.
+#
+#  Returns:
+#           A function that builds the TF ops when called.
+#
+#  Raises:
+#           ValueError: If mode is not 'train', 'eval', or 'generate'.
+#                   :param mode:
+#                   :param config:
+#                   :param sequence_example_file_paths:
+#                   :return:
+#  Description:
+            Returns a function that builds the TensorFlow graph.                                                                          
 #######################################################################################
 """
 
 
-# necesito tres modelos distintos para tres casos de uso distintos
+
 def get_TF_graph(mode, config, sequence_example_file_paths=None):
-    """Returns a function that builds the TensorFlow graph.
-#@DGG
-  Args:
-    mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
-        the graph.
-    config: An EventSequenceRnnConfig containing the encoder/decoder and HParams
-        to use.
-    sequence_example_file_paths: A list of paths to TFRecord files containing
-        tf.train.SequenceExample protos. Only needed for training and
-        evaluation.
 
-  Returns:
-    A function that builds the TF ops when called.
 
-  Raises:
-    ValueError: If mode is not 'train', 'eval', or 'generate'.
-    :param mode:
-    :param config:
-    :param sequence_example_file_paths:
-    :return:
-  """
-
-    # Analizamos los parámetros de configuración
     hparams = config.hparams
     if hparams.use_cudnn:
         raise ValueError('cuDNN no esta actualmente soportado.')
@@ -609,9 +568,11 @@ def get_TF_graph(mode, config, sequence_example_file_paths=None):
 """
 #######################################################################################
 # Function: Entrenamiento
-# Input: 
-# Output: 
-# Description: 
+# Args:
+#    construye_grafo: Una función que construye un grafo de operaciones.
+#    train_dir: El directorio donde los checkpoints del entrenamiento serán cargados
+#    num_training_steps: El número de steps en el  entrenamiento .
+# Description: Runs the evaluation loop.
 #                                                                            
 #######################################################################################
 """
@@ -676,28 +637,24 @@ def Entrenamiento(construye_grafo, train_dir, num_training_steps=None):
 """
 #######################################################################################
 # Function: Evaluacion
-# Input: 
-# Output: 
-# Description: 
+# Args:
+#    build_graph_fn: Una funcion que construye un grafo de operaciones.
+#    train_dir: El directorio donde los checkpoints del entrenamiento serán cargados
+#    eval_dir: El directorio donde el resumen de la evaluación sera guardado
+#    num_batches: El número de batches que se usan para cada step en la evaluacion
+#    timeout_secs: El número de segundo que debe esperar para analizar otro checkpoint.
+#  Raises:
+#    ValueError: si `num_batches` es menor o igual que 0.
+#
+# Description: Runs the evaluation loop.
 #                                                                            
 #######################################################################################
 """
 
 
-# TODO(adarob): Limit to a single epoch each evaluation step.
 def Evaluacion(build_graph_fn, train_dir, eval_dir, num_batches,
                timeout_secs=300):
-    """Runs the training loop.
 
-  Args:
-    build_graph_fn: Una funcion que construye un grafo de operaciones.
-    train_dir: El directorio donde los checkpoints del entrenamiento serán cargados
-    eval_dir: El directorio donde el resumen de la evaluación sera guardado
-    num_batches: El número de batches que se usan para cada step en la evaluacion
-    timeout_secs: El número de segundo que debe esperar para analizar otro checkpoint.
-  Raises:
-    ValueError: If `num_batches` is less than or equal to 0.
-  """
     tf.compat.v1.logging.set_verbosity('INFO')
     if num_batches <= 0:
         raise ValueError(
@@ -724,7 +681,6 @@ def Evaluacion(build_graph_fn, train_dir, eval_dir, num_batches,
             contrib_training.StopAfterNEvalsHook(num_batches),
             contrib_training.SummaryAtEndHook(eval_dir),
         ]
-        # @DGG a futuro, me interesa igual por ahora.
         # names_to_values = contrib_training.evaluate_once(
         #     checkpoint_path=train_dir,
         #     eval_ops=eval_ops,
@@ -744,16 +700,14 @@ def Evaluacion(build_graph_fn, train_dir, eval_dir, num_batches,
 """
 #######################################################################################
 # Function: get_checkpoint
-# Input: 
-# Output: 
-# Description: 
+#
+# Description: Get the training dir or checkpoint path to be used by the model.
 #                                                                            
 #######################################################################################
 """
 
-
 def get_checkpoint():
-    """Get the training dir or checkpoint path to be used by the model."""
+
 
     if Flags.run_dir:
         train_dir = os.path.join(os.path.expanduser(Flags.run_dir), 'train')
@@ -767,24 +721,18 @@ def get_checkpoint():
 """
 #######################################################################################
 # Function: get_generator_map
-# Input: 
-# Output: 
-# Description: 
+#   Arguments:
+#               Binds the `config` argument so that the arguments match the
+#               BaseSequenceGenerator class constructor.: 
+# Returns: 
+#                Map from the generator ID to its SequenceGenerator class creator with a
+#                bound `config` argument.
+# Description: Returns a map from the generator ID to a SequenceGenerator class creator
 #                                                                            
 #######################################################################################
 """
 
-
 def get_generator_map():
-    """Returns a map from the generator ID to a SequenceGenerator class creator.
-
-  Binds the `config` argument so that the arguments match the
-  BaseSequenceGenerator class constructor.
-
-  Returns:
-    Map from the generator ID to its SequenceGenerator class creator with a
-    bound `config` argument.
-  """
 
     def create_sequence_generator(config, **kwargs):
         return DrumsRnnSequenceGenerator(
@@ -794,26 +742,21 @@ def get_generator_map():
     return {key: functools.partial(create_sequence_generator, config)
             for (key, config) in default_configs.items()}
 
-
 """
 #######################################################################################
 # Function: run_with_flags
-# Input: 
-# Output: 
-# Description: 
+# Arguments: 
+#           generator: The DrumsRnnSequenceGenerator to use for generation.
+#                        Check TensorFlow Flags for mor infor
+# 
+# Description: Creates a drum track and save it as MIDI file
 #                                                                            
 #######################################################################################
 """
 
 
 def run_with_flags(generator):
-    """Generates drum tracks and saves them as MIDI files.
 
-  Uses the options specified by the flags defined in this module.
-
-  Args:
-    generator: The DrumsRnnSequenceGenerator to use for generation.
-  """
     if not Flags.output_dir:
         tf.logging.fatal('--output_dir required')
         return
@@ -877,9 +820,6 @@ def run_with_flags(generator):
             start_time=0,
             end_time=total_seconds)
     generator_options.args['temperature'].float_value = Flags.temperature
-    # generator_options.args['beam_size'].int_value = Flags.beam_size
-    # generator_options.args['branch_factor'].int_value = Flags.branch_factor
-    # generator_options.args['steps_per_iteration'].int_value = Flags.steps_per_iteration
     tf.logging.debug('input_sequence: %s', input_sequence)
     tf.logging.debug('generator_options: %s', generator_options)
 
@@ -889,7 +829,6 @@ def run_with_flags(generator):
     digits = len(str(Flags.num_outputs))
     for i in range(Flags.num_outputs):
         generated_sequence = generator.generate(input_sequence, generator_options)
-
         midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
         midi_path = os.path.join(Flags.output_dir, midi_filename)
         magenta.music.sequence_proto_to_midi_file(generated_sequence, midi_path)
@@ -943,8 +882,8 @@ def DeepBeat(unused_argv):
         return
     modo_de_trabajo = Flags.modo_trabajo
 
-    # D-Parámetros de conftopiguración red neuronal
-    # configuracion es un  objeto tipo events_rnn_model.EventSequenceRnnConfig(...)
+    # D-Parámetros de configuración red neuronal
+    # la variable configuracion es un  objeto tipo events_rnn_model.EventSequenceRnnConfig(...)
     configuracion = default_configs['drum_kit']
     tf.compat.v1.logging.info("Objeto de configuración {}".format(configuracion))
 
@@ -983,9 +922,6 @@ def DeepBeat(unused_argv):
         ####################
         else:
             config = configuracion  # igual
-
-            # Having too large of a batch size will slow generation down unnecessarily.
-            # config.hparams.batch_size = min( config.hparams.batch_size, Flags.beam_size * Flags.branch_factor)
 
             # Funciona pero esta creando el modelo usando el event rnn graph
             generator = DrumsRnnSequenceGenerator(
