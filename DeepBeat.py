@@ -67,24 +67,26 @@ default_configs = {'drum_kit':
 #Flags to configure evaluation and training. Spanish edition
 Flags = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/Deepbeat/logdir/run1',
-                           'Directorio  donde se encuentran los checkpoinst y'
+                           'Directorio  donde se encuentran los checkpoinst y '
                            'los análisis de los eventos.Se crearán en directorios separados para '
                            'el entrenamiento y la evaluación. '
-                           'Se pueden guardar diferentes entrenamientos/evaluaciones'
+                           'Se pueden guardar diferentes entrenamientos/evaluaciones '
                            'en el mismo directorio. Si se desea usar TensorBoard'
                            'aputar al directorio run_dir.' )
 tf.app.flags.DEFINE_string('SE', '',
-                           'Directorio donde se encuentran los archivos TFRecord'
-                           'para  el entrenamiento o la evaluación.')
+                           'Directorio donde se encuentran los archivos TFRecord '
+                           'para  el entrenamiento o la evaluación. ')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
-                            'Específica el número de steps en el entrenamiento.'
+                            'Específica el número de steps en el entrenamiento. '
                             'Dejar valor 0 para terminar de forma manual.')
 tf.app.flags.DEFINE_string('modo_trabajo', 'train',
-                           'train: entrentamiento'
-                           'eval: evaluación'
-                           'generate: inferencia')
+                           'train: entrentamiento '
+                           'eval: evaluación '
+                           'generate: inferencia ')
 tf.app.flags.DEFINE_integer('num_eval_batches', 64,
-                            'Específica el número de batches en la evaluación.')
+                            'Especifica el número de batches en la evaluación. ')
+tf.app.flags.DEFINE_string( 'hparams', '','Especifica parametros de red. '
+                            'Separados con coma, listados con "name=valor, name2=valor".')
 
 #Flags for inference. Spanish edition.
 tf.app.flags.DEFINE_string('output_dir', '/tmp/drums_rnn/generated',
@@ -107,7 +109,7 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'Valores mayores que 1 generar pistas más aleatorias y valores menores que 1 menos '
                           'aleatorias.')
 
-#@TODO ELIMINAR :
+#@TODO:
 tf.app.flags.DEFINE_string('primer_midi', '',
                             'Directorio del archivo MIDI que sustituye al flag prime_midi.'
                             'Si no se especifica, la pista sera creada desde el principio.')
@@ -161,7 +163,7 @@ class EvalLoggingTensorHook(tf.estimator.LoggingTensorHook):
 #              Shared Melody RNN generation code as a SequenceGenerator interface. Adaptation.                                                                
 #######################################################################################
 """
-#TODO @DGG : DrumsRnnSequence needs to use our model generation function
+#TODO @DGG : use the model generator below
 
 class DrumsRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
@@ -854,7 +856,7 @@ def run_with_flags(generator):
 
 
 def DeepBeat(unused_argv):
-    # Solo para interno 'DEBUG, INFO, WARN, ERROR, or FATAL.'
+    # Interal use 'DEBUG, INFO, WARN, ERROR, or FATAL.'
     tf.compat.v1.logging.set_verbosity('INFO')
     tf.compat.v1.logging.info("###### Init DeepBeat ######")
 
@@ -885,6 +887,7 @@ def DeepBeat(unused_argv):
     # D-Parámetros de configuración red neuronal
     # la variable configuracion es un  objeto tipo events_rnn_model.EventSequenceRnnConfig(...)
     configuracion = default_configs['drum_kit']
+    configuracion.hparams.parse(Flags.hparams)
     tf.compat.v1.logging.info("Objeto de configuración {}".format(configuracion))
 
     # E-Flag Construcción del grafo con una red LSTM basada en la configuracion.
