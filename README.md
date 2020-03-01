@@ -27,14 +27,14 @@ These instructions will get you a copy of the project up and running on your loc
 
 First, set up your  [Magenta environment](https://github.com/tensorflow/magenta). 
 
-###1.2 Installing the full Development Environment.
+### 1.2 Installing the full Development Environment.
 
 Clone this repository:
 ```bash
 git clone https://github.com/DPGGES/DeepBeat
 ```
 
-##1.3 Pre-trained models
+### 1.3 Pre-trained models
 
 If you want to get started right away, we have been pre-trained twelve models based on Hip-Hop:
 
@@ -44,7 +44,7 @@ If you want to get started right away, we have been pre-trained twelve models ba
 **Note**, we recommend the run256b64_15_85_ model. 
 It is a LSTM with two layers of 256 units. It has been trained using a batch of 64 units and a dataset with 15% for evaluation and 85% for training.
 
-###1.4 Starting right away
+### 1.4 Starting right away
 
 ```
 MODEL_PATH=<absolute path of the pre_trained model>
@@ -66,12 +66,12 @@ Starting with the division of a bar into 16 parts. The above example shows that 
 
 A track has a 16 division per beat (1/16). The value 'num_steps'= 128 means that DeepBeat will generate 128/16= 8 beats.
 
-##2 Make your own Model
+## 2 Make your own Model
  
 
-###2.1. Create your Dataset
+### 2.1. Create your Dataset
 
-###2.1.1. Create NoteSequences
+#### 2.1.1. Create NoteSequences
 
 The first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/). In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```. Please follow the instrucctions  [here](https://github.com/tensorflow/magenta/blob/master/magenta/scripts/README.md).
 
@@ -100,7 +100,7 @@ notes {
 }
 ```
 
-###2.1.2. Create SequenceExamples
+#### 2.1.2. Create SequenceExamples
 
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a drum track. Run the command below to extract drum tracks from our NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.15, 15% of the extracted drum tracks will be saved in the eval collection, and 85% will be saved in the training collection.
 
@@ -118,7 +118,7 @@ If you have skipped the previous section you can use our data:
 
 * [Data](https://drive.google.com/file/d/1isrnMFRxnpnVn9ZCAELxsKG-fMNRezY0/view?usp=sharing)
 
-####2.2.1. Training
+#### 2.2.1. Training
 
 DeepBeat is very effective and is based on DrumRnn model from Magenta. Since it allows you to create a model, compile it, evaluate it and create the Beat, a series of flags need to be filled:
 
@@ -140,7 +140,7 @@ python DeepBeat.py \
 
 ```
 
-####2.2.2 Evaluation
+#### 2.2.2 Evaluation
 Optionally you can run an evaluation job in parallel. The flags `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--SE` should point to the separate set of eval drum tracks. Include `--modo_trabajo=eval` to make this an evaluation job, resulting in the model only being evaluated without any of the weights being updated.
 
 
@@ -152,7 +152,7 @@ python DeepBeat.py \
 --modo_trabajo=eval \
 ```
 
-####2.2.3 TensorBoard
+#### 2.2.3 TensorBoard
 Run TensorBoard to check the training and evaluation data. It can be called after or during the training and evaluation.
 
 ```
@@ -161,7 +161,7 @@ tensorboard --logdir=/tmp/run1
 
 Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoard dashboard.
 
-###3. Generate Drum Tracks with your model
+## 3. Generate Drum Tracks with your model
 
 DeepBeat can generate drum tracks during or after training(recommended). Run the command below to generate a set of drum tracks using the latest checkpoint file of your trained model. The flags `--run_dir` and `--hparams` should all be the same values used for the training job.
 
